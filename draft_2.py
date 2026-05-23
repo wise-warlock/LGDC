@@ -474,3 +474,123 @@ def get_substring_hash(pref_hash, power, L, R, MOD=10**9+7):
     # L, R là 1-based index (vị trí từ 1 đến N). Lấy hash của chuỗi s[L-1 : R]
     res = (pref_hash[R] - pref_hash[L - 1] * power[R - L + 1]) % MOD
     return (res + MOD) % MOD # Đảm bảo hash luôn dương
+
+# ==========================================
+# 19. PYTHON MICRO-OPTIMIZATIONS (TỐI ƯU HÓA VI MÔ)
+# ==========================================
+
+"""
+A. QUY TẮC SỐ 1: LUÔN VIẾT CODE TRONG HÀM (LOCAL VARIABLES)
+Tại sao? Trong CPython, truy xuất biến cục bộ (local variables) bên trong một hàm (ví dụ: def solve():)
+nhanh hơn đáng kể (khoảng 15-20%) so với truy xuất biến toàn cục (global variables).
+Bởi vì Python dùng mảng tĩnh (STORE_FAST) cho biến cục bộ, còn biến toàn cục phải tra cứu Dictionary (STORE_NAME).
+"""
+# TỐT:
+def main():
+    n = 1000000
+    arr = [0] * n
+    # Xử lý logic ở đây...
+# main()
+
+# XẤU (Nên tránh khi làm giải thuật):
+# n = 1000000
+# arr = [0] * n
+# for i in range(n): ...
+
+
+"""
+B. LIST & ARRAY TRICKS (Kỹ thuật mảng cực nhanh)
+KHI NÀO DÙNG: Cần xử lý mảng dữ liệu khổng lồ (N > 10^5).
+"""
+# 1. Khởi tạo mảng (Pre-allocation) NHANH HƠN list.append()
+# Nếu biết trước kích thước, KHÔNG dùng append.
+n = 100000
+arr_fast = [0] * n        # Nhanh gấp đôi!
+arr_slow = []
+# for i in range(n): arr_slow.append(0) # Bỏ cách này đi
+
+# 2. List Comprehension (Nhanh hơn vòng lặp for thường)
+# Viết gộp vòng lặp vào trong mảng được tối ưu hóa ở tầng C của Python.
+old_arr = [1, 2, 3, 4, 5]
+new_arr = [x * 2 for x in old_arr if x % 2 != 0]
+
+# 3. Flatten (Làm phẳng) Mảng 2D siêu tốc
+matrix = [[1, 2], [3, 4], [5, 6]]
+flat_list = [item for sublist in matrix for item in sublist] # Kết quả: [1, 2, 3, 4, 5, 6]
+
+
+"""
+C. SET & DICT (Vũ khí tra cứu O(1))
+KHI NÀO DÙNG: Yêu cầu kiểm tra phần tử CÓ TỒN TẠI KHÔNG (toán tử 'in').
+"""
+# Nếu kiểm tra 'if x in arr' với List -> Mất O(N) thời gian (Rất dễ TLE).
+# Nếu biến arr thành Set -> Mất O(1) thời gian (Chớp mắt).
+arr = [1, 5, 9, 100, 2500]
+lookup_set = set(arr)
+# if 100 in lookup_set:  # Nhanh hơn hàng ngàn lần so với List nếu mảng lớn
+
+# Gộp 2 Dictionary nhanh nhất (Python 3.9+)
+dict1 = {'a': 1, 'b': 2}
+dict2 = {'b': 3, 'c': 4}
+merged_dict = dict1 | dict2 # Kết quả: {'a': 1, 'b': 3, 'c': 4}
+
+
+"""
+D. VÒNG LẶP FOR / WHILE BIẾN TẤU (Loop Hacks)
+"""
+# 1. Hàm ENUMERATE: Vừa lấy giá trị, vừa lấy vị trí (Nhanh và chuẩn Pythonic)
+# Thay vì: for i in range(len(arr)): print(i, arr[i])
+# Hãy dùng:
+# for idx, val in enumerate(arr):
+#     pass
+
+# 2. Hàm ZIP: Duyệt nhiều mảng cùng lúc không lo lệch index
+arr_A = [1, 2, 3]
+arr_B = ['A', 'B', 'C']
+# for a, b in zip(arr_A, arr_B):
+#     print(a, b) # In ra: 1 A, 2 B, 3 C
+
+# 3. Cú pháp FOR...ELSE (Cực kỳ xịn trong Competitive Programming)
+# KHI NÀO DÙNG: Cần tìm kiếm thứ gì đó trong mảng. Thay vì phải dùng biến cờ (flag = True/False),
+# khối 'else' sẽ ĐƯỢC CHẠY nếu vòng lặp kết thúc bình thường (KHÔNG bị ngắt bởi 'break').
+target = 5
+for x in arr_A:
+    if x == target:
+        print("Tìm thấy!")
+        break
+else:
+    # Đoạn này CHỈ chạy nếu không có lệnh break nào xảy ra ở trên
+    print("Tìm hết mảng rồi nhưng không thấy!")
+
+
+"""
+E. ADVANCED SORTING (Sắp xếp bằng itemgetter - Nhanh hơn Lambda)
+KHI NÀO DÙNG: Khi bạn cần sắp xếp mảng tuple/list mà bị TLE khi dùng lambda.
+"""
+from operator import itemgetter
+
+data = [(1, 'apple', 50), (2, 'banana', 20), (3, 'cherry', 50)]
+
+# Sắp xếp theo phần tử thứ 3 (index 2) tăng dần, nếu bằng thì xếp theo index 0 giảm dần.
+# Mẹo: Lambda linh hoạt hơn, nhưng itemgetter CHẠY NHANH HƠN ở tầng C của Python.
+# Nếu chỉ đơn thuần là lấy index, hãy dùng itemgetter.
+data.sort(key=itemgetter(2, 0))
+
+
+"""
+F. MẸO ĐỌC DỮ LIỆU ĐỈNH CAO (Cắt từng chữ - Iterator mapping)
+KHI NÀO DÙNG: Khi file Input khổng lồ và có hàng triệu con số rải rác ở nhiều dòng.
+"""
+import sys
+def ultra_fast_read():
+    # Đọc TOÀN BỘ file đầu vào dưới dạng 1 chuỗi dài, sau đó cắt theo khoảng trắng
+    # Iterator map giúp không phải nạp toàn bộ mảng vào RAM cùng lúc.
+    token_iterator = map(int, sys.stdin.read().split())
+    
+    # Hàm next() sẽ nhổ từng số ra một cách cực kỳ mượt mà
+    try:
+        N = next(token_iterator)
+        M = next(token_iterator)
+        # arr = [next(token_iterator) for _ in range(N)]
+    except StopIteration:
+        pass
