@@ -504,3 +504,173 @@ def kmp_search(text, pattern):
             else:
                 j += 1
     return res
+
+# ==========================================
+# 35. GREEDY ALGORITHM (THUẬT TOÁN THAM LAM)
+# ==========================================
+
+"""
+A. INTERVAL SCHEDULING (Lập lịch hoạt động / Chọn đoạn thẳng)
+KHI NÀO DÙNG:
+- Cần chọn ra SỐ LƯỢNG LỚN NHẤT các sự kiện/cuộc họp không bị trùng lặp thời gian.
+- BOJ cực kỳ hay ra dạng bài: Cho N cuộc họp với thời gian [Start, End], tìm cách xếp lịch được nhiều cuộc họp nhất.
+- Bí quyết Tham lam: LUÔN ƯU TIÊN CUỘC HỌP KẾT THÚC SỚM NHẤT! (Sắp xếp theo End Time).
+"""
+def max_non_overlapping_intervals(intervals):
+    # intervals là mảng các tuple (start, end)
+    if not intervals: return 0
+    
+    # Bước 1: Sắp xếp theo thời gian KẾT THÚC (end) tăng dần. 
+    # Nếu kết thúc cùng lúc, sắp xếp theo start tăng dần.
+    intervals.sort(key=lambda x: (x[1], x[0]))
+    
+    count = 0
+    last_end_time = -float('inf')
+    
+    for start, end in intervals:
+        # Nếu cuộc họp này bắt đầu sau khi cuộc họp trước kết thúc -> Chọn!
+        if start >= last_end_time:
+            count += 1
+            last_end_time = end
+            
+    return count
+
+
+# ==========================================
+# 36. DIVIDE AND CONQUER (CHIA ĐỂ TRỊ)
+# ==========================================
+
+"""
+A. CLOSEST PAIR OF POINTS (Cặp điểm gần nhất 2D)
+KHI NÀO DÙNG:
+- Cho N điểm trên mặt phẳng tọa độ (N = 10^5). Tìm khoảng cách ngắn nhất giữa 2 điểm bất kỳ.
+- Không thể dùng O(N^2) duyệt mọi cặp điểm. Dùng Chia để trị giảm xuống O(N log N) hoặc O(N log^2 N).
+- Kỹ thuật: Chia đôi mặt phẳng theo trục X, tìm min 2 bên, rồi xét dải ranh giới (Strip) nằm giữa.
+"""
+import math
+
+def distance(p1, p2):
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def closest_pair(points):
+    # points = [(x1, y1), (x2, y2), ...]
+    points.sort(key=lambda x: x[0]) # Sắp xếp theo tọa độ X
+    
+    def solve(l, r):
+        # Nếu chỉ có <= 3 điểm, vét cạn (Base case)
+        if r - l <= 3:
+            min_d = float('inf')
+            for i in range(l, r):
+                for j in range(i + 1, r + 1):
+                    min_d = min(min_d, distance(points[i], points[j]))
+            return min_d
+            
+        # Chia đôi mặt phẳng
+        mid = (l + r) // 2
+        mid_x = points[mid][0]
+        
+        # Trị từng nửa
+        d1 = solve(l, mid)
+        d2 = solve(mid + 1, r)
+        d = min(d1, d2)
+        
+        # Xét dải ranh giới (Strip) ở giữa có chiều rộng 2*d
+        strip = []
+        for i in range(l, r + 1):
+            if abs(points[i][0] - mid_x) < d:
+                strip.append(points[i])
+                
+        # Sắp xếp các điểm trong strip theo tọa độ Y
+        strip.sort(key=lambda p: p[1])
+        
+        # Kiểm tra các điểm trong strip (Chỉ cần xét tối đa 6-7 điểm lân cận nhờ tính chất hình học)
+        for i in range(len(strip)):
+            for j in range(i + 1, len(strip)):
+                if strip[j][1] - strip[i][1] >= d:
+                    break # Điểm y đã lệch quá d thì bỏ qua ngay
+                d = min(d, distance(strip[i], strip[j]))
+                
+        return d
+        
+    return solve(0, len(points) - 1)
+
+
+# ==========================================
+# 37. MINIMUM VERTEX COVER (BAO PHỦ ĐỈNH NHỎ NHẤT)
+# ==========================================
+
+"""
+A. MINIMUM VERTEX COVER ON TREE (DP trên cây)
+KHI NÀO DÙNG:
+- Bài toán: Chọn ít đỉnh nhất sao cho MỌI CẠNH trong cây đều có ít nhất 1 đầu mút được chọn.
+- Áp dụng Tree DP. Trạng thái: dp[u][0] = Không chọn u, dp[u][1] = Có chọn u.
+"""
+import sys
+sys.setrecursionlimit(200005)
+
+def tree_vertex_cover(n, adj):
+    # dp[u][0]: Số đỉnh tối thiểu cần chọn trong cây con gốc u NẾU KHÔNG CHỌN đỉnh u
+    # dp[u][1]: Số đỉnh tối thiểu cần chọn trong cây con gốc u NẾU CHỌN đỉnh u
+    dp = [[0, 1] for _ in range(n + 1)]
+    visited = [False] * (n + 1)
+    
+    def dfs(u):
+        visited[u] = True
+        for v in adj[u]:
+            if not visited[v]:
+                dfs(v)
+                # Nếu KHÔNG chọn u -> BẮT BUỘC phải chọn tất cả các đỉnh con v (để phủ cạnh u-v)
+                dp[u][0] += dp[v][1]
+                
+                # Nếu CÓ chọn u -> Đỉnh con v có thể được chọn HOẶC không chọn (lấy phương án tối ưu hơn)
+                dp[u][1] += min(dp[v][0], dp[v][1])
+                
+    # Giả sử cây liên thông, bắt đầu từ đỉnh 1
+    dfs(1)
+    return min(dp[1][0], dp[1][1])
+
+
+# ==========================================
+# 38. OFFLINE QUERIES (TRUY VẤN NGOẠI TUYẾN)
+# ==========================================
+
+"""
+A. DSU WITH SORTING QUERIES (Union-Find kết hợp nén truy vấn)
+KHI NÀO DÙNG:
+- Đề bài cho đồ thị N đỉnh, M cạnh có trọng số. Sau đó hỏi Q truy vấn dạng: 
+  "Nếu chỉ dùng các cạnh có trọng số <= W, đỉnh U và V có đi tới được nhau không?".
+- Thay vì trả lời từng truy vấn (Online) bị TLE, ta lưu hết truy vấn lại, SẮP XẾP theo W tăng dần. 
+- Vừa duyệt truy vấn, vừa nối các cạnh (Union-Find) tương ứng -> O(M log M + Q log Q).
+"""
+def offline_queries_dsu(n, edges, queries):
+    # edges: list các tuple (weight, u, v)
+    # queries: list các tuple (W, u, v, index_gốc_của_truy_vấn)
+    
+    # Sắp xếp cạnh và truy vấn theo giới hạn trọng số tăng dần
+    edges.sort(key=lambda x: x[0])
+    queries.sort(key=lambda x: x[0])
+    
+    parent = list(range(n + 1))
+    def find(i):
+        if parent[i] == i: return i
+        parent[i] = find(parent[i])
+        return parent[i]
+        
+    def union(i, j):
+        root_i, root_j = find(i), find(j)
+        if root_i != root_j:
+            parent[root_i] = root_j
+            
+    ans = [False] * len(queries)
+    edge_idx = 0
+    
+    for w, u, v, q_idx in queries:
+        # Thêm tất cả các cạnh có trọng số <= W của truy vấn hiện tại vào hệ thống DSU
+        while edge_idx < len(edges) and edges[edge_idx][0] <= w:
+            union(edges[edge_idx][1], edges[edge_idx][2])
+            edge_idx += 1
+            
+        # Trả lời truy vấn: Kiểm tra xem u và v có cùng thành phần liên thông không
+        ans[q_idx] = (find(u) == find(v))
+        
+    return ans
